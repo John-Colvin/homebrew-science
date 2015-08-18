@@ -1,7 +1,14 @@
 class Clfft < Formula
+  desc "FFT functions written in OpenCL"
   homepage "https://github.com/clMathLibraries/clFFT/"
-  url "https://github.com/clMathLibraries/clFFT/archive/v2.4.tar.gz"
-  sha256 "d77506af774bbe8ccf4226a58e623c8a29587edcf02984e72851099be0efe04b"
+  url "https://github.com/clMathLibraries/clFFT/archive/v2.6.1.tar.gz"
+  sha256 "2b5b15b903baeef4dcea6bb8efbe6aba284510148c04d20f9b151a94ae71c050"
+
+  patch do
+    # New timer implementation for OS X
+    url "https://github.com/clMathLibraries/clFFT/commit/e4063ef4541cd34951b25b38d429f199a15f8e14.diff"
+    sha256 "6c46e429d368a95afa030f6865c392ee0a76d4fa8c7fb55daef88595fb7a5b72"
+  end
 
   bottle do
     cellar :any
@@ -13,58 +20,16 @@ class Clfft < Formula
   depends_on "cmake" => :build
   depends_on "boost" => :build
 
-  patch do
-    # rename Client
-    url "https://github.com/clMathLibraries/clFFT/commit/ecf5d654e3588a2b829227812f4333fb5e9abc90.diff"
-    sha256 "2aefc0c7550853d9ef9bc0efc5e39e12acdf66358e11a0946adf89fc2f6a961b"
-  end
-
-  patch do
-    # fix shared lib loading for mac
-    url "https://github.com/clMathLibraries/clFFT/commit/ecc34629034390a8846490b2d3fe0a4a46a7486a.diff"
-    sha256 "de8631695044be6a567d881b5ebfe463b7a706d62f1e6b44b3194526a0632796"
-  end
-
-  patch do
-    # don't install py files in bin
-    url "https://github.com/clMathLibraries/clFFT/commit/ae845846990bfabe5c01ee8629b8df32ca9ce7a9.diff"
-    sha256 "b61b93b0065a1bce678883109f13690dc2cc88e86a8a37ac490bb4b5a8d37828"
-  end
-
-  patch do
-    # properly deal with rpaths
-    url "https://github.com/clMathLibraries/clFFT/commit/5d30d17fa8d7fdf6eb0fd6ee28a2c79d989dbed9.diff"
-    sha256 "d198d25581ca543ce70a1d908ddad8e4802e3f16ecde7aa4a8878bdbc91e7593"
-  end
-
-  patch do
-    # don't use lib64 in lib path
-    url "https://github.com/clMathLibraries/clFFT/commit/67d1085deb54f8fc166d9523092ff97a190d56ae.diff"
-    sha256 "73c4e4b315284ab86c60ba46d608e817e52698383e6d7910e2cc41bc1e744d9b"
-  end
-
-  patch do
-    # install cmake config and version files
-    url "https://github.com/clMathLibraries/clFFT/commit/c7bac74917ecdeb6d4db7a3f6d677ddba412efa0.diff"
-    sha256 "31e5a6ffc8e94e30970035162c2b45418795929402513b189d2f8fd3a3810ef0"
-  end
-
-  patch do
-    # don't force the usage of libc++
-    url "https://github.com/clMathLibraries/clFFT/pull/73.diff"
-    sha256 "ad7d8b858027e8562b5478793583299f2dfc00621919c62ee199e1885af09a99"
-  end
-
   def install
-    cd "src"
-    system "cmake", ".", "-DBUILD_TEST:BOOL=OFF", *std_cmake_args
+    mkdir "build"
+    cd "build"
+    system "cmake", "../src", "-DBUILD_EXAMPLES:BOOL=OFF", "-DBUILD_TEST:BOOL=OFF", *std_cmake_args
     system "make", "install"
   end
 
   test do
-    # apple's opencl for cpu has a known bug that makes clfft fail on cpu
-    cd lib
-    output = `#{bin}/clFFT-client -i`
-    assert $?.success? unless output =~ /CL_DEVICE_TYPE: +CPU/
+    system "#{bin}/clFFT-client", "-i"
+    # apple's opencl for cpu has a known bug that makes clfft fail on cpu, so force gpu
+    system "#{bin}/clFFT-client", "-g", "-x", "192", "-y", "108", "--inLayout", "5", "--outLayout", "3"
   end
 end
